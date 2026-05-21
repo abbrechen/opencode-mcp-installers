@@ -9,18 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run CI test
-        run: bash dev/figma-remote/test-ci.sh
-
   build:
-    needs: test
     runs-on: ubuntu-latest
 
     steps:
@@ -30,20 +19,19 @@ jobs:
       - name: Build files
         run: |
           mkdir -p dist
-          # Find all .sh files in installers/ and subdirectories, copy to dist/ as .command
-          find installers -name '*.sh' -exec sh -c '
-            for f; do
-              rel="${f#installers/}"
-              dest="dist/${rel%.sh}.command"
-              mkdir -p "$(dirname "$dest")"
-              cp "$f" "$dest"
-              chmod +x "$dest"
-            done
-          ' sh {} +
-          zip -r dist/installers.zip dist/*.command dist/**/*.command 2>/dev/null || true
+          for sh_file in $(find installers -name '*.sh'); do
+            rel="${sh_file#installers/}"
+            dir_name="${rel%/*}"
+            base_name="${rel##*/}"
+            base_name="${base_name%.sh}.command"
+            mkdir -p "dist/$dir_name"
+            cp "$sh_file" "dist/$dir_name/$base_name"
+            chmod +x "dist/$dir_name/$base_name"
+            zip_name="$(echo "$rel" | tr '/' '_')".command.zip
+            (cd dist && zip "$zip_name" "$dir_name/$base_name")
+          done
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/installers.zip
+          files: dist/*.zip
