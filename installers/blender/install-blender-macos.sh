@@ -8,7 +8,7 @@ OPENCODE_CONFIG="$HOME/.config/opencode/opencode.json"
 # ---------------------------------------------------------------------------
 if ! command -v uv &>/dev/null; then
     echo "uv is not installed. Installing now…"
-    curl -LsSf https://github.com/astral-sh/uv/releases/latest/download/uv-install-latest.sh | sh > /dev/null 2>&1
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
     export PATH="$HOME/.local/bin:$PATH"
 
