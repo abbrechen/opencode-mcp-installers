@@ -7,6 +7,8 @@ PROJECT_ROOT="$SCRIPT_DIR/.."
 ERRORS=0
 TESTS_RUN=0
 
+rm -rf "$PROJECT_ROOT/tmp/"
+
 for installer in "$PROJECT_ROOT"/installers/*/install-*.sh; do
     if [ ! -f "$installer" ]; then
         continue
@@ -20,7 +22,6 @@ for installer in "$PROJECT_ROOT"/installers/*/install-*.sh; do
     echo "Testing: $dir_name ($(basename "$installer"))"
     echo "═══════════════════════════════════════════════════════════════════"
 
-    rm -rf "$test_home"
     mkdir -p "$test_home"
 
     TESTS_RUN=$((TESTS_RUN + 1))
