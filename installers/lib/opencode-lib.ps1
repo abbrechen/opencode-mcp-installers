@@ -5,15 +5,28 @@ $global:OpenCodeConfig = "$env:USERPROFILE\.config\opencode\opencode.json"
 function Ensure-OpenCodeInstalled {
     if (!(Get-Command opencode -ErrorAction SilentlyContinue)) {
         Write-Host "OpenCode is not installed. Installing now..."
-        $installerPath = Join-Path $env:TEMP "opencode-install.ps1"
-        Invoke-WebRequest -Uri https://opencode.ai/install -UseBasicParsing -OutFile $installerPath
-        . $installerPath
-        $env:Path += ";$env:USERPROFILE\.opencode\bin"
+        $installDir = "$env:USERPROFILE\.opencode\bin"
+        New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+
+        # Determine latest version
+        Write-Host "Fetching latest OpenCode release info..."
+        $latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/anomalyco/opencode/releases/latest" -UseBasicParsing
+        $version = $latestRelease.tag_name -replace '^v'
+        Write-Host "Downloading opencode $version for Windows..."
+
+        $zipUrl = "https://github.com/anomalyco/opencode/releases/latest/download/opencode-windows-x64.zip"
+        $zipPath = Join-Path $env:TEMP "opencode-windows-x64.zip"
+
+        Invoke-WebRequest -Uri $zipUrl -UseBasicParsing -OutFile $zipPath
+        Expand-Archive -Path $zipPath -DestinationPath $installDir -Force
+        Remove-Item $zipPath -Force
+
+        $env:Path += ";$installDir"
         if (!(Get-Command opencode -ErrorAction SilentlyContinue)) {
             Write-Error "OpenCode installation completed but 'opencode' not found."
             exit 1
         }
-        Add-ToShellConfig "opencode" ".opencode\bin" "$env:USERPROFILE\.opencode\bin"
+        Add-ToShellConfig "opencode" ".opencode\bin" "$installDir"
     }
     Write-Host "✓ OpenCode is installed."
 }
