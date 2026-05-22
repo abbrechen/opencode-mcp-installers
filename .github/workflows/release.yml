@@ -21,10 +21,10 @@ jobs:
           source installers/lib/opencode-lib.sh
           mkdir -p dist
           for sh_file in $(find installers -name 'install-*.sh'); do
-            rel="${sh_file#installers/}"
+            base_name="$(basename "$sh_file")"
+            name_no_ext="${base_name%.*}"
             version="$(sed -n 's/^# Version: *//p' "$sh_file")"
-            zip_name="$(echo "$rel" | tr '/' '_')"
-            zip_name="${zip_name%.*}-${version}.zip"
+            zip_name="${name_no_ext}-${version}.zip"
             bundle_dir="dist/${zip_name%.zip}"
             create_bundle "$sh_file" "$bundle_dir"
             (cd "$bundle_dir" && zip -r "../$zip_name" .)

@@ -1,2 +1,3 @@
 # temporary folder for test runs
-/tmp
+/tmp/
+/dist/

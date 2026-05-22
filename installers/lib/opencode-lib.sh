@@ -114,19 +114,27 @@ PYEOF
 create_bundle() {
     local installer="$1"
     local bundle_dir="$2"
-    local dir_name
-    dir_name="$(basename "$(dirname "$installer")")"
     local base_name
     base_name="$(basename "$installer")"
     local name_no_ext="${base_name%.*}"
+    local lib_path="$(dirname "$installer")/../lib/opencode-lib.sh"
 
-    mkdir -p "$bundle_dir/$dir_name"
-    cp "$installer" "$bundle_dir/$dir_name/${name_no_ext}.command"
-    chmod +x "$bundle_dir/$dir_name/${name_no_ext}.command"
+    mkdir -p "$bundle_dir"
 
-    local lib_dir
-    lib_dir="$(dirname "$(dirname "$installer")")/lib"
-    [ -d "$lib_dir" ] && cp -r "$lib_dir" "$bundle_dir/"
+    if [ -f "$lib_path" ]; then
+        awk -v libfile="$lib_path" '
+/^source .*opencode-lib\.sh/ {
+    print "# --- begin opencode-lib.sh (inlined) ---"
+    while ((getline < libfile) > 0) print
+    print "# --- end opencode-lib.sh (inlined) ---"
+    next
+}
+{ print }
+' "$installer" > "$bundle_dir/${name_no_ext}.command"
+    else
+        cp "$installer" "$bundle_dir/${name_no_ext}.command"
+    fi
 
-    echo "$bundle_dir/$dir_name/${name_no_ext}.command"
+    chmod +x "$bundle_dir/${name_no_ext}.command"
+    echo "$bundle_dir/${name_no_ext}.command"
 }
