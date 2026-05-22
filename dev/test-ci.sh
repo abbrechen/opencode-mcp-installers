@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR/.."
 
+source "$PROJECT_ROOT/installers/lib/opencode-lib.sh"
+
 ERRORS=0
 TESTS_RUN=0
 
@@ -15,19 +17,21 @@ for installer in "$PROJECT_ROOT"/installers/*/install-*.sh; do
     fi
 
     dir_name="$(basename "$(dirname "$installer")")"
+    base_name="$(basename "$installer")"
     test_home="$PROJECT_ROOT/tmp/${dir_name}-test-home"
+    bundle_dir="$test_home/bundle"
 
     echo ""
     echo "═══════════════════════════════════════════════════════════════════"
-    echo "Testing: $dir_name ($(basename "$installer"))"
+    echo "Testing: $dir_name ($base_name)"
     echo "═══════════════════════════════════════════════════════════════════"
 
-    mkdir -p "$test_home"
+    command_path="$(create_bundle "$installer" "$bundle_dir")"
 
     TESTS_RUN=$((TESTS_RUN + 1))
 
     set +e
-    HOME="$test_home" bash "$installer"
+    HOME="$test_home" bash "$command_path"
     EXIT_CODE=$?
     set -e
 

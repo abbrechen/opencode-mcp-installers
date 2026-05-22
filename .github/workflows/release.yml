@@ -18,17 +18,17 @@ jobs:
 
       - name: Build files
         run: |
+          source installers/lib/opencode-lib.sh
           mkdir -p dist
-          for sh_file in $(find installers -name '*.sh'); do
+          for sh_file in $(find installers -name 'install-*.sh'); do
             rel="${sh_file#installers/}"
-            dir_name="${rel%/*}"
-            base_name="${rel##*/}"
-            base_name="${base_name%.sh}.command"
-            mkdir -p "dist/$dir_name"
-            cp "$sh_file" "dist/$dir_name/$base_name"
-            chmod +x "dist/$dir_name/$base_name"
-            zip_name="$(echo "$rel" | tr '/' '_')".command.zip
-            (cd dist && zip "$zip_name" "$dir_name/$base_name")
+            version="$(sed -n 's/^# Version: *//p' "$sh_file")"
+            zip_name="$(echo "$rel" | tr '/' '_')"
+            zip_name="${zip_name%.*}-${version}.zip"
+            bundle_dir="dist/${zip_name%.zip}"
+            create_bundle "$sh_file" "$bundle_dir"
+            (cd "$bundle_dir" && zip -r "../$zip_name" .)
+            rm -rf "$bundle_dir"
           done
 
       - name: Create Release
