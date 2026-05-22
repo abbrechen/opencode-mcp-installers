@@ -9,30 +9,76 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-macos:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build files
+      - name: Build macOS bundles
         run: |
           source installers/lib/opencode-lib.sh
           mkdir -p dist
           for sh_file in $(find installers -name 'install-*.sh'); do
-            base_name="$(basename "$sh_file")"
-            # Füge "mcp" in den Namen ein: install-blender-macos → install-blender-mcp-macos
             name_no_ext="$(basename "$sh_file" .sh | sed 's/-macos/-mcp-macos/')"
-            version="$(sed -n 's/^# Version: *//p' "$sh_file")"
-            zip_name="${name_no_ext}-${version}.zip"
+            zip_name="${name_no_ext}.zip"
             bundle_dir="dist/${zip_name%.zip}"
             create_bundle "$sh_file" "$bundle_dir"
             (cd "$bundle_dir" && zip -r "../$zip_name" .)
             rm -rf "$bundle_dir"
           done
 
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-bundles
+          path: dist/*.zip
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build Windows bundles
+        shell: pwsh
+        run: |
+          . .\installers\lib\opencode-lib.ps1
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Get-ChildItem installers\*\install-*-windows.ps1 | ForEach-Object {
+            $baseName = $_.BaseName
+            $nameNoExt = $baseName -replace '-windows', '-mcp-windows'
+            $zipName = "${nameNoExt}.zip"
+            $bundleDir = "dist\${zipName}".TrimEnd('.zip')
+            Create-Bundle -Installer $_.FullName -BundleDir $bundleDir
+            Compress-Archive -Path "$bundleDir\*" -DestinationPath "dist\$zipName"
+            Remove-Item -Recurse -Force $bundleDir
+          }
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-bundles
+          path: dist/*.zip
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Flatten artifacts into dist/
+        run: |
+          mkdir -p dist/release
+          find dist -name '*.zip' -exec cp {} dist/release/ \;
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.zip
+          files: dist/release/*.zip

@@ -10,7 +10,7 @@ ERRORS=0    # number of failed tests
 TESTS_RUN=0 # number of tests executed
 
 # Clean up any previous test output
-rm -rf "$PROJECT_ROOT/tmp/"
+rm -rf "$PROJECT_ROOT/tmp/macos/"
 
 # Iterate over all installer scripts and run each in an isolated $HOME
 for installer in "$PROJECT_ROOT"/installers/*/install-*.sh; do
@@ -20,7 +20,7 @@ for installer in "$PROJECT_ROOT"/installers/*/install-*.sh; do
 
     dir_name="$(basename "$(dirname "$installer")")" # e.g. "blender"
     base_name="$(basename "$installer")"             # e.g. "install-blender-macos.sh"
-    test_home="$PROJECT_ROOT/tmp/${dir_name}-test-home" # isolated $HOME for this test
+    test_home="$PROJECT_ROOT/tmp/macos/${dir_name}-test-home" # isolated $HOME for this test
     bundle_dir="$test_home/bundle"
 
     echo ""
