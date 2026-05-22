@@ -33,7 +33,7 @@ for installer in "$PROJECT_ROOT"/installers/*/install-*.sh; do
     TESTS_RUN=$((TESTS_RUN + 1))
 
     set +e
-    HOME="$test_home" bash "$command_path"
+    HOME="$test_home" OPENCODE_CI=1 bash "$command_path"
     EXIT_CODE=$?
     set -e
 

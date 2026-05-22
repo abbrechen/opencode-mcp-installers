@@ -60,7 +60,7 @@ Add-McpEntry "figma-remote" $mcpEntry
 
 # Step 7: Remove stale figma entries from mcp-auth.json
 if (Test-Path $mcpAuthPath) {
-    $auth = Get-Content $mcpAuthPath -Raw | ConvertFrom-Json -AsHashtable
+    $auth = ConvertTo-Hashtable (Get-Content $mcpAuthPath -Raw | ConvertFrom-Json)
     $keysToRemove = @($auth.Keys | Where-Object { $_ -like "*figma*" })
     foreach ($k in $keysToRemove) {
         $auth.Remove($k)
@@ -74,7 +74,11 @@ if (Test-Path $mcpAuthPath) {
 }
 
 # Step 8: Run the OpenCode MCP OAuth auth flow (opens a browser)
-Write-Host "Launching 'opencode mcp auth figma-remote' (this may open a browser)…"
-opencode mcp auth figma-remote
+if ($env:OPENCODE_CI) {
+    Write-Host "ℹ OPENCODE_CI is set – skipping OAuth flow."
+} else {
+    Write-Host "Launching 'opencode mcp auth figma-remote' (this may open a browser)…"
+    opencode mcp auth figma-remote
+}
 
 Write-Host "✓ Figma remote MCP configuration complete."

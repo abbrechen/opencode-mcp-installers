@@ -122,7 +122,11 @@ fi
 # ---------------------------------------------------------------------------
 # Step 8: Run the OpenCode MCP OAuth auth flow (opens a browser)
 # ---------------------------------------------------------------------------
-echo "Launching 'opencode mcp auth figma-remote' (this may open a browser)…"
-opencode mcp auth figma-remote
+if [ -n "${OPENCODE_CI:-}" ]; then
+    echo "ℹ OPENCODE_CI is set – skipping OAuth flow."
+else
+    echo "Launching 'opencode mcp auth figma-remote' (this may open a browser)…"
+    opencode mcp auth figma-remote
+fi
 
 echo "✓ Figma remote MCP configuration complete."

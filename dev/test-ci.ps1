@@ -32,15 +32,28 @@ foreach ($installer in $installers) {
 
     $testsRun++
 
-    # Run the bundle in an isolated user profile
+    # Run the bundle in an isolated user profile with a 5-minute timeout
     $oldUserProfile = $env:USERPROFILE
     $env:USERPROFILE = $testHome
     $oldHome = $env:HOME
     $env:HOME = $testHome
+    $oldLocalAppData = $env:LOCALAPPDATA
+    $env:LOCALAPPDATA = Join-Path $testHome "AppData\Local"
+    $oldPsModulePath = $env:PSModulePath
+    $env:PSModulePath = "$testHome\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules"
+    $oldCi = $env:OPENCODE_CI
+    $env:OPENCODE_CI = "1"
     try {
         if ($IsWindows) {
-            $process = Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ps1Path`"" -Wait -PassThru -NoNewWindow
-            $exitCode = $process.ExitCode
+            $process = [System.Diagnostics.Process]::Start("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -File `"$ps1Path`"")
+            if ($process.WaitForExit(300000)) {
+                $exitCode = $process.ExitCode
+            } else {
+                $process.Kill()
+                Write-Host "FAIL: $dirName installer timed out (300s)"
+                $errors++
+                continue
+            }
         } else {
             & $ps1Path
             $exitCode = $LASTEXITCODE
@@ -48,6 +61,9 @@ foreach ($installer in $installers) {
     } finally {
         $env:USERPROFILE = $oldUserProfile
         $env:HOME = $oldHome
+        $env:LOCALAPPDATA = $oldLocalAppData
+        $env:PSModulePath = $oldPsModulePath
+        $env:OPENCODE_CI = $oldCi
     }
 
     if ($exitCode -ne 0) {

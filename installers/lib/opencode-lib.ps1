@@ -5,8 +5,9 @@ $global:OpenCodeConfig = "$env:USERPROFILE\.config\opencode\opencode.json"
 function Ensure-OpenCodeInstalled {
     if (!(Get-Command opencode -ErrorAction SilentlyContinue)) {
         Write-Host "OpenCode is not installed. Installing now..."
-        $installScript = Invoke-WebRequest -Uri https://opencode.ai/install -UseBasicParsing
-        Invoke-Expression $installScript.Content
+        $installerPath = Join-Path $env:TEMP "opencode-install.ps1"
+        Invoke-WebRequest -Uri https://opencode.ai/install -UseBasicParsing -OutFile $installerPath
+        . $installerPath
         $env:Path += ";$env:USERPROFILE\.opencode\bin"
         if (!(Get-Command opencode -ErrorAction SilentlyContinue)) {
             Write-Error "OpenCode installation completed but 'opencode' not found."
@@ -61,6 +62,31 @@ function Add-ToShellConfig {
     }
 }
 
+# Recursively convert a PSObject to a hashtable (PS5.1-compatible)
+function ConvertTo-Hashtable {
+    param($InputObject)
+    if ($InputObject -is [PSCustomObject]) {
+        $ht = @{}
+        foreach ($prop in $InputObject.PSObject.Properties) {
+            $ht[$prop.Name] = ConvertTo-Hashtable $prop.Value
+        }
+        return $ht
+    } elseif ($InputObject -is [System.Collections.IList]) {
+        $list = @()
+        foreach ($item in $InputObject) {
+            $list += ConvertTo-Hashtable $item
+        }
+        return @($list)
+    } elseif ($InputObject -is [System.Collections.IDictionary]) {
+        $ht = @{}
+        foreach ($key in $InputObject.Keys) {
+            $ht[$key] = ConvertTo-Hashtable $InputObject[$key]
+        }
+        return $ht
+    }
+    return $InputObject
+}
+
 # Add an MCP server entry to opencode.json
 function Add-McpEntry {
     param($Key, $JsonPayload)
@@ -69,12 +95,12 @@ function Add-McpEntry {
     $config = @{}
     if (Test-Path $configPath) {
         $raw = Get-Content $configPath -Raw
-        $config = if ($raw) { $raw | ConvertFrom-Json -AsHashtable } else { @{} }
+        $config = if ($raw) { ConvertTo-Hashtable ($raw | ConvertFrom-Json) } else { @{} }
     }
     if (!$config.ContainsKey('mcp') -or $null -eq $config.mcp) {
         $config.mcp = @{}
     }
-    $config.mcp[$Key] = ($JsonPayload | ConvertFrom-Json -AsHashtable)
+    $config.mcp[$Key] = ConvertTo-Hashtable ($JsonPayload | ConvertFrom-Json)
     $config | ConvertTo-Json -Depth 10 | Set-Content $configPath
     Write-Host "✓ Added $Key to opencode.json."
 }
@@ -110,7 +136,7 @@ function Create-Bundle {
     $bundleContent = $installerContent.Replace('. "$scriptDir\..\lib\opencode-lib.ps1"', "$inlinedHeader`r`n$libContent`r`n$inlinedFooter")
 
     $ps1Path = Join-Path $BundleDir "$nameNoExt.ps1"
-    $bundleContent | Set-Content $ps1Path
+    $bundleContent | Set-Content -Path $ps1Path -Encoding Unicode
 
     # Create .bat wrapper for double-click execution
     $batPath = Join-Path $BundleDir "$nameNoExt.bat"
