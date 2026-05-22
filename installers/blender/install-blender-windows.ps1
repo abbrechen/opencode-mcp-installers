@@ -7,8 +7,9 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Step 1: Install uv (Python package manager) if not already present
 if (!(Get-Command uv -ErrorAction SilentlyContinue)) {
     Write-Host "uv is not installed. Installing now..."
-    $installScript = Invoke-WebRequest -Uri https://astral.sh/uv/install.ps1 -UseBasicParsing
-    Invoke-Expression $installScript.Content
+    $installerPath = Join-Path $env:TEMP "uv-install.ps1"
+    Invoke-WebRequest -Uri https://astral.sh/uv/install.ps1 -UseBasicParsing -OutFile $installerPath
+    . $installerPath
     $env:Path += ";$env:USERPROFILE\.local\bin"
     if (!(Get-Command uv -ErrorAction SilentlyContinue)) {
         Write-Error "uv installation failed – 'uv' not found after install."
