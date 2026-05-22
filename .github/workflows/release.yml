@@ -22,7 +22,8 @@ jobs:
           mkdir -p dist
           for sh_file in $(find installers -name 'install-*.sh'); do
             base_name="$(basename "$sh_file")"
-            name_no_ext="${base_name%.*}"
+            # Füge "mcp" in den Namen ein: install-blender-macos → install-blender-mcp-macos
+            name_no_ext="$(basename "$sh_file" .sh | sed 's/-macos/-mcp-macos/')"
             version="$(sed -n 's/^# Version: *//p' "$sh_file")"
             zip_name="${name_no_ext}-${version}.zip"
             bundle_dir="dist/${zip_name%.zip}"

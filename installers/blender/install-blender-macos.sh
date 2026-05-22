@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/../lib/opencode-lib.sh"
 
 # ---------------------------------------------------------------------------
-# Step 1: Install uv (Python package manager)
+# Step 1: Install uv (Python package manager) if not already present
 # ---------------------------------------------------------------------------
 if ! command -v uv &>/dev/null; then
     echo "uv is not installed. Installing now…"
@@ -21,7 +21,7 @@ fi
 echo "✓ uv is installed."
 
 # ---------------------------------------------------------------------------
-# Step 2: Install blender-mcp via uv
+# Step 2: Install the blender-mcp package via uv
 # ---------------------------------------------------------------------------
 echo "Installing blender-mcp package via uv…"
 uv tool install blender-mcp
@@ -33,12 +33,12 @@ echo "✓ blender-mcp installed."
 ensure_opencode_config
 
 # ---------------------------------------------------------------------------
-# Step 4: Bail if blender is already configured
+# Step 4: Bail if blender is already configured in opencode.json
 # ---------------------------------------------------------------------------
 ensure_mcp_not_configured "blender"
 
 # ---------------------------------------------------------------------------
-# Step 5: Add blender MCP server to opencode.json
+# Step 5: Register blender as a command-type MCP server
 # ---------------------------------------------------------------------------
 add_mcp_entry "blender" '{"type": "command", "command": "blender-mcp", "args": []}'
 

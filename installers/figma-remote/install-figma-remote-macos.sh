@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/../lib/opencode-lib.sh"
 
+# Path to the OpenCode MCP auth store (cleaned in step 7)
 MCP_AUTH="$HOME/.local/share/opencode/mcp-auth.json"
 
 # ---------------------------------------------------------------------------
@@ -23,7 +24,7 @@ ensure_opencode_config
 ensure_mcp_not_configured "figma-remote"
 
 # ---------------------------------------------------------------------------
-# Step 4: Register Figma OAuth MCP client
+# Step 4: Register an OAuth client with the Figma API
 # ---------------------------------------------------------------------------
 echo "Registering Figma OAuth MCP client..."
 FIGMA_RESPONSE=$(curl -s -X POST https://api.figma.com/v1/oauth/mcp/register \
@@ -42,7 +43,7 @@ if [ -z "$FIGMA_RESPONSE" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 5: Extract client_id and client_secret
+# Step 5: Extract client_id and client_secret from the JSON response
 # ---------------------------------------------------------------------------
 CLIENT_ID=$(echo "$FIGMA_RESPONSE" | python3 -c "
 import sys, json
@@ -71,7 +72,7 @@ fi
 echo "✓ Got client credentials (ID: ${CLIENT_ID:0:8}…)."
 
 # ---------------------------------------------------------------------------
-# Step 6: Add figma-remote to opencode.json
+# Step 6: Add figma-remote as a remote MCP entry with OAuth config
 # ---------------------------------------------------------------------------
 MCP_ENTRY=$(python3 -c "
 import json
@@ -88,7 +89,7 @@ print(json.dumps({
 add_mcp_entry "figma-remote" "$MCP_ENTRY"
 
 # ---------------------------------------------------------------------------
-# Step 7: Clean figma entries from mcp-auth.json
+# Step 7: Remove stale figma entries from mcp-auth.json
 # ---------------------------------------------------------------------------
 if [ -f "$MCP_AUTH" ]; then
     python3 << 'PYEOF'
@@ -119,7 +120,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 8: Run opencode MCP auth flow
+# Step 8: Run the OpenCode MCP OAuth auth flow (opens a browser)
 # ---------------------------------------------------------------------------
 echo "Launching 'opencode mcp auth figma-remote' (this may open a browser)…"
 opencode mcp auth figma-remote

@@ -6,19 +6,21 @@ PROJECT_ROOT="$SCRIPT_DIR/.."
 
 source "$PROJECT_ROOT/installers/lib/opencode-lib.sh"
 
-ERRORS=0
-TESTS_RUN=0
+ERRORS=0    # number of failed tests
+TESTS_RUN=0 # number of tests executed
 
+# Clean up any previous test output
 rm -rf "$PROJECT_ROOT/tmp/"
 
+# Iterate over all installer scripts and run each in an isolated $HOME
 for installer in "$PROJECT_ROOT"/installers/*/install-*.sh; do
     if [ ! -f "$installer" ]; then
         continue
     fi
 
-    dir_name="$(basename "$(dirname "$installer")")"
-    base_name="$(basename "$installer")"
-    test_home="$PROJECT_ROOT/tmp/${dir_name}-test-home"
+    dir_name="$(basename "$(dirname "$installer")")" # e.g. "blender"
+    base_name="$(basename "$installer")"             # e.g. "install-blender-macos.sh"
+    test_home="$PROJECT_ROOT/tmp/${dir_name}-test-home" # isolated $HOME for this test
     bundle_dir="$test_home/bundle"
 
     echo ""
@@ -42,6 +44,7 @@ for installer in "$PROJECT_ROOT"/installers/*/install-*.sh; do
     fi
     echo "✓ $dir_name installer completed."
 
+    # Verify the installer created an opencode.json
     opencode_config="$test_home/.config/opencode/opencode.json"
     if [ ! -f "$opencode_config" ]; then
         echo "FAIL: $dir_name - opencode.json was not created"
@@ -49,6 +52,7 @@ for installer in "$PROJECT_ROOT"/installers/*/install-*.sh; do
         continue
     fi
 
+    # Verify the generated opencode.json is valid JSON
     if python3 -c "import json; json.load(open('$opencode_config'))" 2>/dev/null; then
         echo "✓ $dir_name - opencode.json is valid JSON"
     else

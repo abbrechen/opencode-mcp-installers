@@ -1,5 +1,7 @@
+# Path to the OpenCode config file
 OPENCODE_CONFIG="$HOME/.config/opencode/opencode.json"
 
+# Check if OpenCode is installed; install it if missing
 ensure_opencode_installed() {
     if ! command -v opencode &>/dev/null; then
         echo "OpenCode is not installed. Installing now…"
@@ -14,6 +16,7 @@ ensure_opencode_installed() {
     echo "✓ OpenCode is installed."
 }
 
+# Ensure opencode.json exists and contains valid JSON
 ensure_opencode_config() {
     echo "Validating OpenCode setup…"
     local config_dir
@@ -32,6 +35,7 @@ ensure_opencode_config() {
     echo "✓ OpenCode setup is valid."
 }
 
+# Bail out if the given MCP key is already configured in opencode.json
 ensure_mcp_not_configured() {
     local key="$1"
     if [ -f "$OPENCODE_CONFIG" ]; then
@@ -50,10 +54,11 @@ sys.exit(1)
     fi
 }
 
+# Persist a directory in $PATH by writing to the user's shell config
 add_to_shell_config() {
-    local tool_name="$1"
-    local grep_path="$2"
-    local export_path="$3"
+    local tool_name="$1"    # e.g. "opencode"
+    local grep_path="$2"    # substring to search for (avoid duplicates)
+    local export_path="$3"  # the `export PATH=...` line to append
 
     local shell_config=""
     if [ -n "${ZDOTDIR:-}" ] && [ -f "$ZDOTDIR/.zshrc" ]; then
@@ -80,9 +85,10 @@ add_to_shell_config() {
     fi
 }
 
+# Add an MCP server entry to opencode.json
 add_mcp_entry() {
-    local key="$1"
-    local json_payload="$2"
+    local key="$1"          # MCP service name, e.g. "blender"
+    local json_payload="$2" # JSON configuration for the MCP server
 
     echo "Updating opencode.json…"
     KEY="$key" JSON_PAYLOAD="$json_payload" python3 << 'PYEOF'
@@ -111,12 +117,15 @@ print(f"✓ Added {key} to opencode.json.")
 PYEOF
 }
 
+# Build a self-contained .command file from an installer script
+# The shared library (opencode-lib.sh) is inlined so the bundle has no external dependencies
 create_bundle() {
-    local installer="$1"
-    local bundle_dir="$2"
+    local installer="$1"   # path to the installer script, e.g. install-blender-macos.sh
+    local bundle_dir="$2"  # output directory for the bundle
     local base_name
     base_name="$(basename "$installer")"
-    local name_no_ext="${base_name%.*}"
+    local name_no_ext
+    name_no_ext="$(basename "$installer" .sh | sed 's/-macos/-mcp-macos/')"
     local lib_path="$(dirname "$installer")/../lib/opencode-lib.sh"
 
     mkdir -p "$bundle_dir"
